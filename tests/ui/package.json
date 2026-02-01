@@ -1,0 +1,92 @@
+{
+  "name": "rag-chatbot-ui-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive UI testing suite for RAG Chatbot including accessibility, responsive design, and usability testing",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test:all",
+    "test:all": "npm run test:accessibility && npm run test:responsive && npm run test:usability",
+    "test:accessibility": "node accessibility/accessibility-test-suite.js",
+    "test:responsive": "node responsive/responsive-test-suite.js",
+    "test:usability": "node usability/usability-test-scenarios.js",
+    "test:accessibility:report": "node accessibility/accessibility-test-suite.js && open accessibility/accessibility-report.html",
+    "test:responsive:report": "node responsive/responsive-test-suite.js && open responsive/responsive-report.html",
+    "test:usability:report": "node usability/usability-test-scenarios.js && open usability/usability-report.html",
+    "test:ci": "npm run test:accessibility && npm run test:responsive",
+    "test:dev": "NODE_ENV=development npm run test:all",
+    "test:staging": "BASE_URL=https://staging.example.com npm run test:all",
+    "test:production": "BASE_URL=https://production.example.com npm run test:ci",
+    "install:deps": "npm install",
+    "setup": "npm run install:deps && npm run test:accessibility -- --help",
+    "report:generate": "node scripts/generate-combined-report.js",
+    "report:serve": "npx http-server . -p 8080 -o",
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix"
+  },
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "responsive",
+    "usability",
+    "testing",
+    "ui",
+    "ux",
+    "wcag",
+    "rag",
+    "chatbot"
+  ],
+  "author": "UX Test Analyst Agent",
+  "license": "MIT",
+  "dependencies": {
+    "@axe-core/puppeteer": "^4.8.2",
+    "axe-core": "^4.8.2",
+    "puppeteer": "^21.5.2",
+    "lighthouse": "^11.4.0",
+    "jest": "^29.7.0",
+    "jest-puppeteer": "^9.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.54.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "http-server": "^14.1.1",
+    "@types/puppeteer": "^7.0.4"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/rag-chatbot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/rag-chatbot/issues"
+  },
+  "homepage": "https://github.com/your-org/rag-chatbot#readme",
+  "jest": {
+    "preset": "jest-puppeteer",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "setupFilesAfterEnv": [
+      "./jest.setup.js"
+    ]
+  },
+  "eslintConfig": {
+    "extends": [
+      "standard"
+    ],
+    "env": {
+      "node": true,
+      "jest": true,
+      "browser": true
+    },
+    "rules": {
+      "no-console": "warn",
+      "semi": ["error", "always"]
+    }
+  }
+}

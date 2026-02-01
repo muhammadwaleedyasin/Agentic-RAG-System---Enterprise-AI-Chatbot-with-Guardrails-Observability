@@ -1,0 +1,31 @@
+# Requirements for Performance Monitor
+
+# Core monitoring
+psutil==5.9.6
+memory-profiler==0.61.0
+prometheus-client==0.19.0
+
+# Data analysis
+numpy==1.24.4
+pandas==2.1.4
+scipy==1.11.4
+matplotlib==3.8.2
+seaborn==0.13.0
+
+# Async and networking
+asyncio-mqtt==0.13.0
+aiofiles==23.2.1
+aiohttp==3.9.1
+
+# Database
+redis==5.0.1
+diskcache==5.6.3
+
+# API
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Utilities
+python-dotenv==1.0.0
+pyyaml==6.0.1
+click==8.1.7
