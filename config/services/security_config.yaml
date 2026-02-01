@@ -1,0 +1,439 @@
+# Enterprise Security Configuration
+# Comprehensive security settings for RAG system
+
+# General Security Settings
+security:
+  version: "1.0.0"
+  environment: "production"  # development, staging, production
+  debug_mode: false
+  secret_key: "${SECURITY_SECRET_KEY}"  # Environment variable
+  
+  # Session Settings
+  session:
+    timeout_minutes: 60
+    max_concurrent_sessions: 5
+    secure_cookies: true
+    same_site: "strict"
+  
+  # Rate Limiting
+  rate_limiting:
+    enabled: true
+    default_rate: "100/hour"
+    burst_rate: "10/minute"
+    auth_rate: "5/minute"
+
+# Authentication Configuration
+authentication:
+  methods:
+    - "oauth2"
+    - "jwt"
+    - "saml"
+  
+  # JWT Settings
+  jwt:
+    algorithm: "RS256"
+    expiration_minutes: 60
+    refresh_expiration_days: 7
+    issuer: "rag-system"
+    audience: "rag-users"
+  
+  # OAuth2 Settings
+  oauth2:
+    providers:
+      - name: "azure_ad"
+        client_id: "${AZURE_CLIENT_ID}"
+        client_secret: "${AZURE_CLIENT_SECRET}"
+        tenant_id: "${AZURE_TENANT_ID}"
+        scopes: ["openid", "profile", "email"]
+      
+      - name: "google"
+        client_id: "${GOOGLE_CLIENT_ID}"
+        client_secret: "${GOOGLE_CLIENT_SECRET}"
+        scopes: ["openid", "profile", "email"]
+  
+  # SAML Settings
+  saml:
+    entity_id: "rag-system"
+    sso_url: "${SAML_SSO_URL}"
+    x509_cert: "${SAML_X509_CERT}"
+
+# Access Control Configuration
+access_control:
+  # Default roles and permissions
+  default_roles:
+    guest:
+      permissions:
+        - resource_type: "document"
+          resource_pattern: "public/*"
+          access_level: "read"
+    
+    user:
+      permissions:
+        - resource_type: "document"
+          resource_pattern: "*"
+          access_level: "read"
+        - resource_type: "collection"
+          resource_pattern: "user/*"
+          access_level: "read"
+      parent_roles: ["guest"]
+    
+    admin:
+      permissions:
+        - resource_type: "document"
+          resource_pattern: "*"
+          access_level: "write"
+        - resource_type: "collection"
+          resource_pattern: "*"
+          access_level: "write"
+        - resource_type: "system"
+          resource_pattern: "*"
+          access_level: "admin"
+      parent_roles: ["user"]
+  
+  # Access policies
+  policies:
+    - name: "sensitive_data_protection"
+      resource_type: "document"
+      resource_pattern: "*/sensitive/*"
+      required_access_level: "write"
+      conditions:
+        classification_level: ["confidential", "restricted"]
+        time_range:
+          start: "09:00"
+          end: "17:00"
+    
+    - name: "external_access_restriction"
+      resource_type: "document"
+      resource_pattern: "*"
+      deny_conditions:
+        ip_whitelist: []  # Populated from environment
+      priority: 100
+
+# Audit Logging Configuration
+audit_logging:
+  # Storage settings
+  storage:
+    backend: "file"  # file, database, elasticsearch, s3
+    path: "./audit_logs"
+    max_file_size_mb: 100
+    retention_days: 365
+    compression: true
+    encryption: true
+  
+  # Event settings
+  events:
+    batch_size: 100
+    flush_interval_seconds: 30
+    async_processing: true
+    
+    # Required fields for all events
+    required_fields:
+      - "user_id"
+      - "action"
+      - "timestamp"
+      - "outcome"
+    
+    # Event categories to log
+    categories:
+      - "authentication"
+      - "authorization"
+      - "data_access"
+      - "data_modification"
+      - "system_access"
+      - "policy_violation"
+      - "configuration_change"
+  
+  # Real-time alerts
+  alerts:
+    enabled: true
+    thresholds:
+      critical: 1
+      high: 5
+      medium: 50
+    
+    # Alert channels
+    channels:
+      - type: "email"
+        recipients: ["security@company.com"]
+        events: ["critical", "high"]
+      
+      - type: "slack"
+        webhook_url: "${SLACK_WEBHOOK_URL}"
+        events: ["critical"]
+      
+      - type: "syslog"
+        server: "${SYSLOG_SERVER}"
+        port: 514
+        events: ["critical", "high", "medium"]
+
+# Compliance Configuration
+compliance:
+  # Enabled frameworks
+  frameworks:
+    - "gdpr"
+    - "hipaa"
+    - "sox"
+    - "pci_dss"
+    - "iso_27001"
+  
+  # Assessment schedules
+  assessment_schedules:
+    gdpr: "monthly"
+    hipaa: "quarterly"
+    sox: "monthly"
+    pci_dss: "quarterly"
+    iso_27001: "annually"
+  
+  # Policy rules
+  policy_rules:
+    # GDPR Rules
+    - rule_id: "gdpr_consent_required"
+      name: "GDPR Consent Required"
+      frameworks: ["gdpr"]
+      policy_type: "data_protection"
+      conditions:
+        data_classification: ["personal", "sensitive"]
+        consent_obtained: true
+      violation_severity: "high"
+    
+    - rule_id: "gdpr_data_retention"
+      name: "GDPR Data Retention"
+      frameworks: ["gdpr"]
+      policy_type: "data_protection"
+      conditions:
+        data_age_days:
+          max: 365
+        retention_justified: true
+    
+    # HIPAA Rules
+    - rule_id: "hipaa_encryption_required"
+      name: "HIPAA Encryption Required"
+      frameworks: ["hipaa"]
+      policy_type: "encryption"
+      conditions:
+        data_classification: ["phi", "health"]
+        encryption_required: true
+      violation_severity: "critical"
+    
+    # SOX Rules
+    - rule_id: "sox_segregation_duties"
+      name: "SOX Segregation of Duties"
+      frameworks: ["sox"]
+      policy_type: "access_control"
+      conditions:
+        data_classification: ["financial"]
+        segregation_enforced: true
+      violation_severity: "high"
+  
+  # Reporting
+  reporting:
+    auto_generate: true
+    frequency: "weekly"
+    recipients: ["compliance@company.com"]
+    formats: ["pdf", "json"]
+
+# Data Loss Prevention Configuration
+data_loss_prevention:
+  # Detection rules
+  detection_rules:
+    # PII Detection
+    - rule_id: "ssn_detection"
+      name: "Social Security Number"
+      data_type: "pii"
+      sensitivity_level: "confidential"
+      detection_method: "regex"
+      patterns:
+        - '\b\d{3}-\d{2}-\d{4}\b'
+        - '\b\d{3}\s\d{2}\s\d{4}\b'
+      required_context: ["ssn", "social", "security"]
+    
+    - rule_id: "credit_card_detection"
+      name: "Credit Card Number"
+      data_type: "pci"
+      sensitivity_level: "restricted"
+      detection_method: "regex"
+      patterns:
+        - '\b4\d{3}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b'
+        - '\b5[1-5]\d{2}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b'
+    
+    - rule_id: "api_key_detection"
+      name: "API Keys and Tokens"
+      data_type: "credentials"
+      sensitivity_level: "restricted"
+      detection_method: "regex"
+      patterns:
+        - '(?i)api[_-]?key["\']?\s*[:=]\s*["\']?[a-zA-Z0-9]{20,}'
+        - '(?i)token["\']?\s*[:=]\s*["\']?[a-zA-Z0-9]{20,}'
+  
+  # DLP Policies
+  policies:
+    - policy_id: "block_high_sensitivity"
+      name: "Block High Sensitivity Data"
+      data_types: ["pci", "phi"]
+      sensitivity_levels: ["restricted", "top_secret"]
+      actions:
+        external_share: "block"
+        download: "block"
+        print: "block"
+      enforcement_mode: "enforce"
+      priority: 100
+    
+    - policy_id: "monitor_pii"
+      name: "Monitor PII Access"
+      data_types: ["pii"]
+      sensitivity_levels: ["confidential"]
+      actions:
+        read: "log"
+        download: "alert"
+        external_share: "block"
+      enforcement_mode: "enforce"
+      priority: 80
+    
+    - policy_id: "protect_credentials"
+      name: "Protect Credentials"
+      data_types: ["credentials"]
+      actions:
+        read: "log"
+        share: "block"
+        external_access: "block"
+      enforcement_mode: "enforce"
+      priority: 90
+  
+  # Response settings
+  response:
+    quarantine_location: "./quarantine"
+    encryption_key: "${DLP_ENCRYPTION_KEY}"
+    alert_recipients: ["security@company.com"]
+    false_positive_learning: true
+
+# Encryption Configuration
+encryption:
+  # Data at rest
+  at_rest:
+    algorithm: "AES-256-GCM"
+    key_rotation_days: 90
+    key_management: "vault"  # vault, kms, local
+  
+  # Data in transit
+  in_transit:
+    tls_version: "1.3"
+    cipher_suites:
+      - "TLS_AES_256_GCM_SHA384"
+      - "TLS_CHACHA20_POLY1305_SHA256"
+    certificate_validation: true
+  
+  # Key management
+  key_management:
+    vault:
+      url: "${VAULT_URL}"
+      token: "${VAULT_TOKEN}"
+      key_path: "secret/rag-system"
+    
+    kms:
+      provider: "aws"  # aws, azure, gcp
+      key_id: "${KMS_KEY_ID}"
+      region: "${AWS_REGION}"
+
+# Security Monitoring
+monitoring:
+  # Metrics collection
+  metrics:
+    enabled: true
+    endpoint: "/metrics"
+    format: "prometheus"
+    
+    # Custom metrics
+    custom_metrics:
+      - "security_events_total"
+      - "access_violations_total"
+      - "dlp_detections_total"
+      - "compliance_score"
+  
+  # Health checks
+  health_checks:
+    enabled: true
+    endpoint: "/health"
+    interval_seconds: 30
+    
+    # Component checks
+    components:
+      - "access_control"
+      - "audit_logger"
+      - "compliance_engine"
+      - "dlp_engine"
+  
+  # Threat detection
+  threat_detection:
+    enabled: true
+    anomaly_threshold: 0.8
+    learning_period_days: 30
+    
+    # Detection rules
+    rules:
+      - name: "unusual_access_pattern"
+        type: "statistical"
+        threshold: 3.0  # Standard deviations
+      
+      - name: "failed_login_attempts"
+        type: "threshold"
+        threshold: 5
+        window_minutes: 15
+      
+      - name: "data_exfiltration"
+        type: "volume"
+        threshold: "100MB"
+        window_minutes: 60
+
+# Integration Settings
+integrations:
+  # SIEM integration
+  siem:
+    enabled: true
+    type: "splunk"  # splunk, elastic, qradar
+    endpoint: "${SIEM_ENDPOINT}"
+    api_key: "${SIEM_API_KEY}"
+    
+    # Event forwarding
+    forward_events:
+      - "authentication"
+      - "authorization"
+      - "policy_violation"
+      - "threat_detection"
+  
+  # Notification services
+  notifications:
+    email:
+      smtp_server: "${SMTP_SERVER}"
+      smtp_port: 587
+      username: "${SMTP_USERNAME}"
+      password: "${SMTP_PASSWORD}"
+      use_tls: true
+    
+    slack:
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channel: "#security-alerts"
+    
+    pagerduty:
+      api_key: "${PAGERDUTY_API_KEY}"
+      service_key: "${PAGERDUTY_SERVICE_KEY}"
+
+# Development and Testing
+development:
+  # Security testing
+  security_testing:
+    enabled: true
+    penetration_testing: false
+    vulnerability_scanning: true
+    code_analysis: true
+  
+  # Mock data
+  mock_data:
+    generate_users: 10
+    generate_documents: 100
+    generate_audit_events: 1000
+  
+  # Debug settings
+  debug:
+    log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+    log_sensitive_data: false
+    expose_metrics: true

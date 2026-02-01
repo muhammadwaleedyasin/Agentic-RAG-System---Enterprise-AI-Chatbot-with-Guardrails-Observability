@@ -1,0 +1,289 @@
+# LLM Provider Configuration Templates
+# This file contains templates for configuring different LLM providers
+
+# Default configuration for production deployment
+production:
+  # Primary provider configuration
+  primary_provider: "unified"  # Use unified provider with failover
+  
+  # Unified provider settings
+  unified:
+    failover_strategy: "auto"          # auto, manual, none, round_robin, priority
+    load_balancing: "health_weighted"  # round_robin, random, response_time, success_rate, health_weighted
+    circuit_breaker_enabled: true
+    circuit_breaker_threshold: 5      # failures before opening circuit
+    circuit_breaker_timeout: 60       # seconds to wait before retrying
+    health_check_interval: 300        # seconds between health checks
+    
+    providers:
+      vllm:
+        type: "vllm"
+        priority: 1
+        model_name: "microsoft/DialoGPT-medium"
+        base_url: "${VLLM_BASE_URL:-http://localhost:8001}"
+        max_tokens: 2048
+        temperature: 0.7
+        timeout: 60
+        max_retries: 3
+        retry_delay: 1.0
+        connect_timeout: 10
+        read_timeout: 60
+        # vLLM specific parameters
+        top_p: 1.0
+        presence_penalty: 0.0
+        frequency_penalty: 0.0
+        repetition_penalty: 1.0
+        best_of: 1
+        use_beam_search: false
+        top_k: -1
+        length_penalty: 1.0
+      
+      openrouter:
+        type: "openrouter"
+        priority: 2
+        model_name: "anthropic/claude-3-sonnet"
+        api_key: "${OPENROUTER_API_KEY}"
+        base_url: "https://openrouter.ai/api/v1"
+        max_tokens: 4096
+        temperature: 0.7
+        timeout: 120
+        max_retries: 3
+        retry_delay: 1.0
+        app_name: "Enterprise RAG Chatbot"
+        http_referer: "https://github.com/enterprise-rag"
+        # OpenRouter specific parameters
+        top_p: 1.0
+        presence_penalty: 0.0
+        frequency_penalty: 0.0
+        repetition_penalty: 1.0
+        top_k: 0
+        min_p: 0.0
+        fallback_models:
+          - "anthropic/claude-3-haiku"
+          - "openai/gpt-3.5-turbo"
+          - "meta-llama/llama-2-70b-chat"
+
+# Development configuration for local testing
+development:
+  primary_provider: "vllm"  # Use local vLLM for development
+  
+  vllm:
+    model_name: "microsoft/DialoGPT-medium"
+    base_url: "http://localhost:8001"
+    max_tokens: 1024
+    temperature: 0.8
+    timeout: 30
+    max_retries: 1
+    retry_delay: 0.5
+    # Development optimizations
+    top_p: 0.9
+    presence_penalty: 0.1
+    frequency_penalty: 0.1
+
+# High-performance configuration
+high_performance:
+  primary_provider: "unified"
+  
+  unified:
+    failover_strategy: "round_robin"
+    load_balancing: "response_time"
+    circuit_breaker_enabled: true
+    circuit_breaker_threshold: 3
+    circuit_breaker_timeout: 30
+    health_check_interval: 60
+    
+    providers:
+      vllm_primary:
+        type: "vllm"
+        priority: 1
+        model_name: "meta-llama/llama-2-70b-chat"
+        base_url: "http://vllm-primary:8001"
+        max_tokens: 2048
+        temperature: 0.7
+        timeout: 30
+        max_retries: 2
+        retry_delay: 0.5
+        # Performance optimizations
+        best_of: 1
+        use_beam_search: false
+        top_k: 50
+        top_p: 0.95
+      
+      vllm_secondary:
+        type: "vllm"
+        priority: 2
+        model_name: "meta-llama/llama-2-70b-chat"
+        base_url: "http://vllm-secondary:8001"
+        max_tokens: 2048
+        temperature: 0.7
+        timeout: 30
+        max_retries: 2
+        retry_delay: 0.5
+      
+      openrouter_fallback:
+        type: "openrouter"
+        priority: 3
+        model_name: "meta-llama/llama-2-70b-chat"
+        api_key: "${OPENROUTER_API_KEY}"
+        max_tokens: 2048
+        temperature: 0.7
+        timeout: 60
+        fallback_models:
+          - "meta-llama/llama-2-13b-chat"
+          - "openai/gpt-3.5-turbo"
+
+# Cost-optimized configuration
+cost_optimized:
+  primary_provider: "unified"
+  
+  unified:
+    failover_strategy: "priority"
+    load_balancing: "random"
+    circuit_breaker_enabled: true
+    
+    providers:
+      vllm_local:
+        type: "vllm"
+        priority: 1
+        model_name: "microsoft/DialoGPT-medium"  # Smaller, faster model
+        base_url: "http://localhost:8001"
+        max_tokens: 1024  # Reduced for cost
+        temperature: 0.7
+        timeout: 45
+      
+      openrouter_cheap:
+        type: "openrouter"
+        priority: 2
+        model_name: "meta-llama/llama-2-7b-chat"  # Cheaper model
+        api_key: "${OPENROUTER_API_KEY}"
+        max_tokens: 1024
+        temperature: 0.7
+        timeout: 90
+        max_cost_per_request: 0.01  # Cost control
+        fallback_models:
+          - "openai/gpt-3.5-turbo"
+
+# Testing configuration
+testing:
+  primary_provider: "mock"  # Use mock provider for tests
+  
+  mock:
+    model_name: "mock-model"
+    response_delay: 0.1  # Simulate response time
+    success_rate: 0.95   # Simulate occasional failures
+    fixed_responses:
+      - "This is a test response."
+      - "Another test response."
+
+# Single provider configurations for specific use cases
+vllm_only:
+  primary_provider: "vllm"
+  
+  vllm:
+    model_name: "${VLLM_MODEL_NAME:-microsoft/DialoGPT-medium}"
+    base_url: "${VLLM_BASE_URL:-http://localhost:8001}"
+    api_key: "${VLLM_API_KEY:-}"
+    max_tokens: "${VLLM_MAX_TOKENS:-2048}"
+    temperature: "${VLLM_TEMPERATURE:-0.7}"
+    timeout: "${VLLM_TIMEOUT:-60}"
+    max_retries: "${VLLM_MAX_RETRIES:-3}"
+    # Advanced vLLM parameters
+    top_p: "${VLLM_TOP_P:-1.0}"
+    presence_penalty: "${VLLM_PRESENCE_PENALTY:-0.0}"
+    frequency_penalty: "${VLLM_FREQUENCY_PENALTY:-0.0}"
+    repetition_penalty: "${VLLM_REPETITION_PENALTY:-1.0}"
+    stop_tokens: []
+    best_of: "${VLLM_BEST_OF:-1}"
+    use_beam_search: "${VLLM_USE_BEAM_SEARCH:-false}"
+    top_k: "${VLLM_TOP_K:--1}"
+    length_penalty: "${VLLM_LENGTH_PENALTY:-1.0}"
+
+openrouter_only:
+  primary_provider: "openrouter"
+  
+  openrouter:
+    model_name: "${OPENROUTER_MODEL_NAME:-anthropic/claude-3-sonnet}"
+    api_key: "${OPENROUTER_API_KEY}"
+    base_url: "${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
+    max_tokens: "${OPENROUTER_MAX_TOKENS:-4096}"
+    temperature: "${OPENROUTER_TEMPERATURE:-0.7}"
+    timeout: "${OPENROUTER_TIMEOUT:-120}"
+    max_retries: "${OPENROUTER_MAX_RETRIES:-3}"
+    app_name: "${OPENROUTER_APP_NAME:-Enterprise RAG Chatbot}"
+    http_referer: "${OPENROUTER_HTTP_REFERER:-https://github.com/enterprise-rag}"
+    # Advanced OpenRouter parameters
+    top_p: "${OPENROUTER_TOP_P:-1.0}"
+    presence_penalty: "${OPENROUTER_PRESENCE_PENALTY:-0.0}"
+    frequency_penalty: "${OPENROUTER_FREQUENCY_PENALTY:-0.0}"
+    repetition_penalty: "${OPENROUTER_REPETITION_PENALTY:-1.0}"
+    top_k: "${OPENROUTER_TOP_K:-0}"
+    min_p: "${OPENROUTER_MIN_P:-0.0}"
+    seed: "${OPENROUTER_SEED:-}"
+    max_cost_per_request: "${OPENROUTER_MAX_COST:-}"
+    fallback_models:
+      - "anthropic/claude-3-haiku"
+      - "openai/gpt-3.5-turbo"
+      - "meta-llama/llama-2-70b-chat"
+      - "mistralai/mixtral-8x7b-instruct"
+
+# Model-specific optimizations
+model_configs:
+  claude_3_sonnet:
+    max_tokens: 4096
+    temperature: 0.7
+    top_p: 1.0
+    supports_function_calling: true
+    context_length: 200000
+    cost_per_1k_input: 0.015
+    cost_per_1k_output: 0.075
+  
+  claude_3_haiku:
+    max_tokens: 4096
+    temperature: 0.7
+    top_p: 1.0
+    supports_function_calling: true
+    context_length: 200000
+    cost_per_1k_input: 0.00025
+    cost_per_1k_output: 0.00125
+  
+  gpt_4_turbo:
+    max_tokens: 4096
+    temperature: 0.7
+    top_p: 1.0
+    supports_function_calling: true
+    context_length: 128000
+    cost_per_1k_input: 0.01
+    cost_per_1k_output: 0.03
+  
+  llama_2_70b:
+    max_tokens: 4096
+    temperature: 0.7
+    top_p: 0.95
+    repetition_penalty: 1.1
+    supports_function_calling: false
+    context_length: 4096
+    cost_per_1k_input: 0.0007
+    cost_per_1k_output: 0.0009
+
+# Environment-specific overrides
+environments:
+  local:
+    vllm:
+      base_url: "http://localhost:8001"
+      timeout: 30
+  
+  docker:
+    vllm:
+      base_url: "http://vllm:8001"
+      timeout: 60
+  
+  kubernetes:
+    vllm:
+      base_url: "http://vllm-service.default.svc.cluster.local:8001"
+      timeout: 90
+  
+  production:
+    openrouter:
+      timeout: 180
+      max_retries: 5
+      retry_delay: 2.0

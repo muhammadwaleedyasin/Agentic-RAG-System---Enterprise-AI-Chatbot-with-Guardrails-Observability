@@ -1,0 +1,513 @@
+# Data Loss Prevention (DLP) Rules Configuration
+# Comprehensive DLP rules for detecting and protecting sensitive data
+
+dlp_rules:
+  version: "1.0.0"
+  last_updated: "2024-12-07"
+  
+  # Detection Rules by Data Type
+  detection_rules:
+    
+    # Personally Identifiable Information (PII)
+    pii:
+      # Social Security Numbers
+      ssn_us:
+        rule_id: "ssn_us"
+        name: "US Social Security Number"
+        description: "Detects US Social Security Numbers in various formats"
+        data_type: "pii"
+        sensitivity_level: "confidential"
+        detection_method: "regex"
+        patterns:
+          - '\b\d{3}-\d{2}-\d{4}\b'           # XXX-XX-XXXX
+          - '\b\d{3}\s\d{2}\s\d{4}\b'         # XXX XX XXXX
+          - '\b\d{9}\b'                       # XXXXXXXXX (context dependent)
+        required_context: ["ssn", "social", "security", "tax", "employee"]
+        excluded_contexts: ["test", "example", "sample", "demo"]
+        confidence_threshold: 0.9
+        false_positive_indicators: ["000-00-0000", "123-45-6789"]
+      
+      # Driver's License Numbers
+      drivers_license:
+        rule_id: "drivers_license_us"
+        name: "US Driver's License Number"
+        description: "Detects US driver's license numbers"
+        data_type: "pii"
+        sensitivity_level: "confidential"
+        detection_method: "regex"
+        patterns:
+          - '\b[A-Z]\d{7,8}\b'                # CA format
+          - '\b\d{8,9}\b'                     # NY format
+          - '\b[A-Z]{1,2}\d{6,8}\b'          # General format
+        required_context: ["license", "driver", "dl", "dmv"]
+        confidence_threshold: 0.8
+      
+      # Passport Numbers
+      passport_us:
+        rule_id: "passport_us"
+        name: "US Passport Number"
+        description: "Detects US passport numbers"
+        data_type: "pii"
+        sensitivity_level: "restricted"
+        detection_method: "regex"
+        patterns:
+          - '\b\d{9}\b'                       # 9 digits
+          - '\b[A-Z]\d{8}\b'                  # Letter + 8 digits
+        required_context: ["passport", "travel", "international"]
+        confidence_threshold: 0.85
+      
+      # Email Addresses
+      email:
+        rule_id: "email_address"
+        name: "Email Address"
+        description: "Detects email addresses"
+        data_type: "pii"
+        sensitivity_level: "internal"
+        detection_method: "regex"
+        patterns:
+          - '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        excluded_contexts: ["no-reply", "example.com", "test.com"]
+        confidence_threshold: 0.95
+      
+      # Phone Numbers
+      phone_us:
+        rule_id: "phone_us"
+        name: "US Phone Number"
+        description: "Detects US phone numbers"
+        data_type: "pii"
+        sensitivity_level: "internal"
+        detection_method: "regex"
+        patterns:
+          - '\b\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b'
+          - '\b\([0-9]{3}\)\s[0-9]{3}-[0-9]{4}\b'
+          - '\b[0-9]{3}-[0-9]{3}-[0-9]{4}\b'
+        excluded_contexts: ["555-0123", "000-000-0000", "example"]
+        confidence_threshold: 0.7
+    
+    # Protected Health Information (PHI)
+    phi:
+      # Medical Record Numbers
+      medical_record_number:
+        rule_id: "medical_record_number"
+        name: "Medical Record Number"
+        description: "Detects medical record numbers"
+        data_type: "phi"
+        sensitivity_level: "restricted"
+        detection_method: "regex"
+        patterns:
+          - '\b(?:MRN|MR|Medical Record)[\s#:]*\d{6,12}\b'
+          - '\bPatient\s+(?:ID|Number)[\s#:]*\d{6,12}\b'
+        required_context: ["medical", "patient", "record", "hospital", "clinic", "healthcare"]
+        confidence_threshold: 0.9
+      
+      # Health Insurance Numbers
+      health_insurance:
+        rule_id: "health_insurance_number"
+        name: "Health Insurance Number"
+        description: "Detects health insurance member numbers"
+        data_type: "phi"
+        sensitivity_level: "restricted"
+        detection_method: "regex"
+        patterns:
+          - '\b(?:Member|Policy|Plan)\s+(?:ID|Number)[\s#:]*[A-Z0-9]{8,15}\b'
+          - '\b[A-Z]{2,3}\d{6,12}\b'
+        required_context: ["insurance", "member", "policy", "plan", "coverage"]
+        confidence_threshold: 0.85
+      
+      # Prescription Numbers
+      prescription:
+        rule_id: "prescription_number"
+        name: "Prescription Number"
+        description: "Detects prescription numbers"
+        data_type: "phi"
+        sensitivity_level: "confidential"
+        detection_method: "regex"
+        patterns:
+          - '\b(?:Rx|Prescription)[\s#:]*\d{7,12}\b'
+          - '\bRx\s+\d{7,12}\b'
+        required_context: ["prescription", "medication", "pharmacy", "drug"]
+        confidence_threshold: 0.8
+    
+    # Payment Card Information (PCI)
+    pci:
+      # Credit Card Numbers
+      credit_card_visa:
+        rule_id: "credit_card_visa"
+        name: "Visa Credit Card"
+        description: "Detects Visa credit card numbers"
+        data_type: "pci"
+        sensitivity_level: "restricted"
+        detection_method: "regex"
+        patterns:
+          - '\b4\d{3}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b'
+        validation: "luhn_algorithm"
+        confidence_threshold: 0.95
+      
+      credit_card_mastercard:
+        rule_id: "credit_card_mastercard"
+        name: "MasterCard Credit Card"
+        description: "Detects MasterCard credit card numbers"
+        data_type: "pci"
+        sensitivity_level: "restricted"
+        detection_method: "regex"
+        patterns:
+          - '\b5[1-5]\d{2}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b'
+        validation: "luhn_algorithm"
+        confidence_threshold: 0.95
+      
+      credit_card_amex:
+        rule_id: "credit_card_amex"
+        name: "American Express Credit Card"
+        description: "Detects American Express credit card numbers"
+        data_type: "pci"
+        sensitivity_level: "restricted"
+        detection_method: "regex"
+        patterns:
+          - '\b3[47]\d{2}[\s-]?\d{6}[\s-]?\d{5}\b'
+        validation: "luhn_algorithm"
+        confidence_threshold: 0.95
+      
+      # CVV Codes
+      cvv:
+        rule_id: "cvv_code"
+        name: "Credit Card CVV"
+        description: "Detects credit card CVV codes"
+        data_type: "pci"
+        sensitivity_level: "top_secret"
+        detection_method: "regex"
+        patterns:
+          - '\b(?:CVV|CVC|CSC)[\s#:]*\d{3,4}\b'
+        required_context: ["cvv", "cvc", "security", "code", "card"]
+        confidence_threshold: 0.9
+    
+    # Financial Information
+    financial:
+      # Bank Account Numbers
+      bank_account:
+        rule_id: "bank_account_number"
+        name: "Bank Account Number"
+        description: "Detects bank account numbers"
+        data_type: "financial"
+        sensitivity_level: "restricted"
+        detection_method: "regex"
+        patterns:
+          - '\b\d{8,17}\b'                    # Generic account number
+          - '\b(?:Account|Acct)[\s#:]*\d{8,17}\b'
+        required_context: ["account", "bank", "routing", "financial", "deposit", "checking", "savings"]
+        excluded_contexts: ["phone", "reference", "order"]
+        confidence_threshold: 0.8
+      
+      # Routing Numbers
+      routing_number:
+        rule_id: "routing_number"
+        name: "Bank Routing Number"
+        description: "Detects bank routing numbers"
+        data_type: "financial"
+        sensitivity_level: "confidential"
+        detection_method: "regex"
+        patterns:
+          - '\b(?:Routing|RT|ABA)[\s#:]*\d{9}\b'
+          - '\b\d{9}\b'                       # Context dependent
+        required_context: ["routing", "aba", "bank", "wire", "transfer"]
+        confidence_threshold: 0.9
+      
+      # Tax ID Numbers
+      tax_id:
+        rule_id: "tax_id_number"
+        name: "Tax Identification Number"
+        description: "Detects tax identification numbers"
+        data_type: "financial"
+        sensitivity_level: "confidential"
+        detection_method: "regex"
+        patterns:
+          - '\b(?:EIN|TIN|Tax ID)[\s#:]*\d{2}-\d{7}\b'
+          - '\b\d{2}-\d{7}\b'
+        required_context: ["tax", "ein", "tin", "employer", "federal"]
+        confidence_threshold: 0.85
+    
+    # Credentials and Secrets
+    credentials:
+      # API Keys
+      api_keys:
+        rule_id: "api_keys"
+        name: "API Keys and Tokens"
+        description: "Detects API keys and authentication tokens"
+        data_type: "credentials"
+        sensitivity_level: "restricted"
+        detection_method: "regex"
+        patterns:
+          - '(?i)api[_-]?key["\']?\s*[:=]\s*["\']?[a-zA-Z0-9]{20,}'
+          - '(?i)token["\']?\s*[:=]\s*["\']?[a-zA-Z0-9]{20,}'
+          - '(?i)secret["\']?\s*[:=]\s*["\']?[a-zA-Z0-9]{20,}'
+          - '(?i)access[_-]?key["\']?\s*[:=]\s*["\']?[a-zA-Z0-9]{20,}'
+        required_context: ["key", "token", "secret", "auth", "access"]
+        excluded_contexts: ["example", "sample", "test", "demo"]
+        confidence_threshold: 0.9
+      
+      # Passwords
+      passwords:
+        rule_id: "passwords"
+        name: "Passwords"
+        description: "Detects password values"
+        data_type: "credentials"
+        sensitivity_level: "restricted"
+        detection_method: "regex"
+        patterns:
+          - '(?i)password["\']?\s*[:=]\s*["\']?[a-zA-Z0-9!@#$%^&*]{8,}'
+          - '(?i)passwd["\']?\s*[:=]\s*["\']?[a-zA-Z0-9!@#$%^&*]{8,}'
+          - '(?i)pwd["\']?\s*[:=]\s*["\']?[a-zA-Z0-9!@#$%^&*]{8,}'
+        required_context: ["password", "passwd", "pwd", "login"]
+        excluded_contexts: ["placeholder", "example", "123456", "password"]
+        confidence_threshold: 0.8
+      
+      # Private Keys
+      private_keys:
+        rule_id: "private_keys"
+        name: "Private Keys"
+        description: "Detects private cryptographic keys"
+        data_type: "credentials"
+        sensitivity_level: "top_secret"
+        detection_method: "regex"
+        patterns:
+          - '-----BEGIN PRIVATE KEY-----'
+          - '-----BEGIN RSA PRIVATE KEY-----'
+          - '-----BEGIN EC PRIVATE KEY-----'
+          - '-----BEGIN OPENSSH PRIVATE KEY-----'
+        confidence_threshold: 1.0
+      
+      # Database Connection Strings
+      database_connections:
+        rule_id: "database_connection_strings"
+        name: "Database Connection Strings"
+        description: "Detects database connection strings"
+        data_type: "credentials"
+        sensitivity_level: "restricted"
+        detection_method: "regex"
+        patterns:
+          - '(?i)server\s*=\s*[^;]+;\s*database\s*=\s*[^;]+;\s*user\s*id\s*=\s*[^;]+;\s*password\s*=\s*[^;]+'
+          - '(?i)mongodb://[^:]+:[^@]+@[^/]+/\w+'
+          - '(?i)mysql://[^:]+:[^@]+@[^/]+/\w+'
+          - '(?i)postgresql://[^:]+:[^@]+@[^/]+/\w+'
+        required_context: ["connection", "database", "server", "db"]
+        confidence_threshold: 0.95
+    
+    # Intellectual Property
+    intellectual_property:
+      # Patent Numbers
+      patent_numbers:
+        rule_id: "patent_numbers"
+        name: "Patent Numbers"
+        description: "Detects patent numbers"
+        data_type: "ip"
+        sensitivity_level: "confidential"
+        detection_method: "regex"
+        patterns:
+          - '\b(?:Patent|Pat\.)\s+(?:No\.?\s*)?[A-Z]{0,2}\d{6,8}\b'
+          - '\bUS\d{6,8}[A-Z]\d?\b'
+        required_context: ["patent", "intellectual", "property", "invention"]
+        confidence_threshold: 0.9
+      
+      # Copyright Information
+      copyright:
+        rule_id: "copyright_notices"
+        name: "Copyright Notices"
+        description: "Detects copyright notices"
+        data_type: "ip"
+        sensitivity_level: "internal"
+        detection_method: "regex"
+        patterns:
+          - '(?i)copyright\s+©?\s*\d{4}'
+          - '©\s*\d{4}'
+          - '\(c\)\s*\d{4}'
+        required_context: ["copyright", "proprietary", "confidential"]
+        confidence_threshold: 0.8
+
+  # DLP Policies
+  policies:
+    # High Security Policy
+    high_security_data:
+      policy_id: "high_security_data"
+      name: "High Security Data Protection"
+      description: "Protect highly sensitive data from unauthorized access"
+      data_types: ["pci", "phi", "credentials"]
+      sensitivity_levels: ["restricted", "top_secret"]
+      priority: 100
+      enforcement_mode: "enforce"
+      
+      actions:
+        external_share: "block"
+        download: "block"
+        print: "block"
+        email: "block"
+        upload: "block"
+        copy: "block"
+        read: "log"
+      
+      conditions:
+        user_groups: ["admin", "security", "compliance"]
+        time_restrictions:
+          allowed_hours: "09:00-17:00"
+          allowed_days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+        location_restrictions:
+          allowed_networks: ["corporate", "vpn"]
+          blocked_countries: ["high_risk_countries"]
+    
+    # PII Monitoring Policy
+    pii_monitoring:
+      policy_id: "pii_monitoring"
+      name: "PII Access Monitoring"
+      description: "Monitor and control access to personally identifiable information"
+      data_types: ["pii"]
+      sensitivity_levels: ["confidential", "internal"]
+      priority: 80
+      enforcement_mode: "enforce"
+      
+      actions:
+        external_share: "block"
+        download: "alert"
+        print: "alert"
+        email: "quarantine"
+        upload: "encrypt"
+        copy: "log"
+        read: "log"
+      
+      user_groups: ["hr", "admin", "manager"]
+      resource_types: ["document", "database", "email"]
+    
+    # Financial Data Policy
+    financial_protection:
+      policy_id: "financial_protection"
+      name: "Financial Data Protection"
+      description: "Protect financial information and ensure SOX compliance"
+      data_types: ["financial", "pci"]
+      sensitivity_levels: ["confidential", "restricted"]
+      priority: 90
+      enforcement_mode: "enforce"
+      
+      actions:
+        external_share: "block"
+        download: "approve"  # Requires approval workflow
+        print: "approve"
+        email: "encrypt"
+        upload: "encrypt"
+        copy: "log"
+        read: "log"
+      
+      approval_required:
+        approvers: ["finance_manager", "security_manager"]
+        timeout_hours: 24
+    
+    # Development Environment Policy
+    dev_environment:
+      policy_id: "dev_environment"
+      name: "Development Environment Protection"
+      description: "Protect credentials and secrets in development"
+      data_types: ["credentials"]
+      sensitivity_levels: ["restricted", "top_secret"]
+      priority: 85
+      enforcement_mode: "enforce"
+      
+      actions:
+        code_commit: "block"
+        code_push: "block"
+        file_save: "alert"
+        share: "block"
+        read: "log"
+      
+      conditions:
+        file_extensions: [".py", ".js", ".java", ".cpp", ".env", ".config"]
+        repository_patterns: ["*"]
+    
+    # Healthcare Data Policy (HIPAA)
+    healthcare_hipaa:
+      policy_id: "healthcare_hipaa"
+      name: "Healthcare Data HIPAA Compliance"
+      description: "Ensure HIPAA compliance for healthcare data"
+      data_types: ["phi"]
+      sensitivity_levels: ["restricted", "confidential"]
+      priority: 95
+      enforcement_mode: "enforce"
+      
+      actions:
+        external_share: "block"
+        download: "encrypt"
+        print: "log"
+        email: "encrypt"
+        upload: "encrypt"
+        copy: "redact"
+        read: "log"
+      
+      encryption_required: true
+      audit_required: true
+      
+      conditions:
+        minimum_age_days: 0  # All PHI is protected immediately
+        business_justification_required: true
+
+  # Response Actions Configuration
+  response_actions:
+    block:
+      description: "Immediately block the action"
+      implementation: "prevent_action"
+      notification: "immediate"
+      escalation: "security_team"
+    
+    quarantine:
+      description: "Move content to quarantine area"
+      implementation: "move_to_quarantine"
+      quarantine_location: "/quarantine"
+      notification: "security_team"
+      review_required: true
+    
+    encrypt:
+      description: "Encrypt the content before allowing action"
+      implementation: "apply_encryption"
+      encryption_algorithm: "AES-256-GCM"
+      key_management: "vault"
+    
+    redact:
+      description: "Redact sensitive portions of content"
+      implementation: "remove_sensitive_data"
+      redaction_character: "*"
+      preserve_format: true
+    
+    alert:
+      description: "Send alert to security team"
+      implementation: "send_notification"
+      channels: ["email", "slack", "siem"]
+      severity: "medium"
+    
+    log:
+      description: "Log the activity for audit purposes"
+      implementation: "audit_log"
+      log_level: "info"
+      retention_days: 365
+    
+    approve:
+      description: "Require approval before allowing action"
+      implementation: "approval_workflow"
+      timeout_hours: 24
+      auto_deny_on_timeout: true
+
+  # Detection Tuning
+  tuning:
+    # False positive reduction
+    false_positive_reduction:
+      enabled: true
+      learning_enabled: true
+      confidence_adjustment: true
+      context_analysis: true
+    
+    # Performance optimization
+    performance:
+      parallel_processing: true
+      caching_enabled: true
+      batch_processing: true
+      max_content_size_mb: 100
+    
+    # Accuracy settings
+    accuracy:
+      minimum_confidence: 0.7
+      context_window_size: 100
+      pattern_validation: true
+      human_verification_threshold: 0.9

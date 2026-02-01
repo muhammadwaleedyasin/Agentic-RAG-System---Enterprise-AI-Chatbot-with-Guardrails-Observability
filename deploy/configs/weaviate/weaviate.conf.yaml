@@ -1,0 +1,66 @@
+# Weaviate Configuration for Enterprise RAG Chatbot
+
+authentication:
+  anonymous_access:
+    enabled: true
+  oidc:
+    enabled: false
+
+authorization:
+  admin_list:
+    enabled: false
+
+query_defaults:
+  limit: 25
+
+origin: http://localhost:8080
+
+persistence:
+  data_path: /var/lib/weaviate
+
+cluster:
+  hostname: 'node1'
+  gossip_bind_port: 7100
+  data_bind_port: 7101
+
+query_maximum_results: 10000
+
+replication:
+  minimum_factor: 1
+
+async_indexing: true
+
+track_vector_dimensions: true
+
+grpc:
+  port: 50051
+
+modules:
+  text2vec-openai:
+    enabled: true
+  text2vec-cohere:
+    enabled: true
+  text2vec-huggingface:
+    enabled: true
+  ref2vec-centroid:
+    enabled: true
+  generative-openai:
+    enabled: true
+  qna-openai:
+    enabled: true
+
+debug: false
+
+log_level: info
+
+profiling:
+  enabled: false
+  port: 6060
+
+monitoring:
+  enabled: true
+  port: 2112
+
+backup:
+  filesystem:
+    path: /var/lib/weaviate/backups

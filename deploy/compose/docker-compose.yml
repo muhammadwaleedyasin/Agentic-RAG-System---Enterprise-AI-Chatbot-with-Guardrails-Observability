@@ -1,0 +1,341 @@
+
+services:
+  # Main RAG Application (FastAPI)
+  app:
+    build:
+      context: ../../
+      dockerfile: deploy/compose/Dockerfile.app
+    container_name: rag_app
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    environment:
+      # Core Configuration
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - API_PREFIX=${API_PREFIX:-/api/v1}
+      
+      # LLM Configuration
+      - LLM_PROVIDER=${LLM_PROVIDER:-local}
+      - VLLM_BASE_URL=http://vllm:8000/v1
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-microsoft/WizardLM-2-7B}
+      
+      # Embeddings Configuration
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-openai}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - VOYAGE_API_KEY=${VOYAGE_API_KEY:-}
+      - NOMIC_API_KEY=${NOMIC_API_KEY:-}
+      
+      # Vector Database Configuration
+      - VECTOR_DB_PROVIDER=${VECTOR_DB_PROVIDER:-weaviate}
+      - WEAVIATE_URL=http://weaviate:8080
+      - WEAVIATE_API_KEY=${WEAVIATE_API_KEY:-}
+      
+      # Memory Configuration
+      - MEMORY_PROVIDER=${MEMORY_PROVIDER:-zep}
+      - ZEP_BASE_URL=http://zep:8000
+      - ZEP_API_KEY=${ZEP_API_KEY:-}
+      
+      # Observability Configuration
+      - OBSERVABILITY_PROVIDER=${OBSERVABILITY_PROVIDER:-langfuse}
+      - LANGFUSE_BASE_URL=http://langfuse:3000
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      
+      # Guardrails Configuration
+      - GUARDRAILS_ENABLED=${GUARDRAILS_ENABLED:-true}
+      - PII_DETECTION_ENABLED=${PII_DETECTION_ENABLED:-true}
+      - CONTENT_FILTERING_ENABLED=${CONTENT_FILTERING_ENABLED:-true}
+      - CITATION_REQUIRED=${CITATION_REQUIRED:-true}
+      
+      # Performance Configuration
+      - MAX_CONCURRENT_REQUESTS=${MAX_CONCURRENT_REQUESTS:-10}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-120}
+      - CHUNK_SIZE=${CHUNK_SIZE:-512}
+      - CHUNK_OVERLAP=${CHUNK_OVERLAP:-50}
+      - TOP_K_RETRIEVAL=${TOP_K_RETRIEVAL:-5}
+      - SIMILARITY_THRESHOLD=${SIMILARITY_THRESHOLD:-0.7}
+      
+      # Database Configuration
+      - DATABASE_URL=postgresql+asyncpg://rag_user:${RAG_DB_PASSWORD:-rag_password}@rag_db:5432/rag_db
+      
+      # Data Directory Configuration
+      - UPLOAD_PATH=/app/data/uploads
+      - VECTOR_DB_PATH=/app/data/vectordb
+      - CACHE_PATH=/app/data/cache
+      
+    volumes:
+      - ../../data/uploads:/app/data/uploads
+      - ../../data/cache:/app/data/cache
+      - ../../data/vectordb:/app/data/vectordb
+      - ../../logs:/app/logs
+    networks:
+      - rag_network
+    depends_on:
+      rag_db:
+        condition: service_healthy
+      weaviate:
+        condition: service_healthy
+      zep:
+        condition: service_healthy
+      langfuse:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Application (Next.js)
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    container_name: rag_frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - NEXT_PUBLIC_API_URL=http://app:8000
+      - NEXT_PUBLIC_WS_URL=ws://app:8000
+      - NEXT_PUBLIC_VERSION=${VERSION:-1.0.0}
+      - NEXT_PUBLIC_ENABLE_ANALYTICS=${ENABLE_ANALYTICS:-true}
+      - NEXT_PUBLIC_ENABLE_DEBUG=${ENABLE_DEBUG:-false}
+    volumes:
+      - ./logs/frontend:/app/.next/cache
+    networks:
+      - rag_network
+    depends_on:
+      - app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Vector Database (Weaviate)
+  weaviate:
+    image: semitechnologies/weaviate:1.25.4
+    container_name: rag_weaviate
+    ports:
+      - "${WEAVIATE_PORT:-8080}:8080"
+      - "${WEAVIATE_GRPC_PORT:-50051}:50051"
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: 'text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai'
+      CLUSTER_HOSTNAME: 'node1'
+      ASYNC_INDEXING: 'true'
+      TRACK_VECTOR_DIMENSIONS: 'true'
+      LOG_LEVEL: '${WEAVIATE_LOG_LEVEL:-info}'
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+      - ./deploy/configs/weaviate:/etc/weaviate
+    networks:
+      - rag_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=3", "--spider", "http://localhost:8080/v1/.well-known/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Local LLM Service (vLLM)
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: rag_vllm
+    ports:
+      - "${VLLM_PORT:-8001}:8000"
+    environment:
+      - MODEL_NAME=${VLLM_MODEL_NAME:-microsoft/WizardLM-2-7B}
+      - TENSOR_PARALLEL_SIZE=${VLLM_TENSOR_PARALLEL_SIZE:-1}
+      - GPU_MEMORY_UTILIZATION=${VLLM_GPU_MEMORY_UTILIZATION:-0.9}
+      - MAX_MODEL_LEN=${VLLM_MAX_MODEL_LEN:-4096}
+      - DTYPE=${VLLM_DTYPE:-auto}
+      - TRUST_REMOTE_CODE=${VLLM_TRUST_REMOTE_CODE:-true}
+      - SERVED_MODEL_NAME=${VLLM_SERVED_MODEL_NAME:-wizardlm-2-7b}
+    volumes:
+      - vllm_models:/root/.cache/huggingface
+      - ./deploy/configs/vllm:/etc/vllm
+    networks:
+      - rag_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+    profiles:
+      - local-llm
+
+  # Memory Backend (Zep)
+  zep:
+    image: ghcr.io/getzep/zep:latest
+    container_name: rag_zep
+    ports:
+      - "${ZEP_PORT:-8002}:8000"
+    environment:
+      - ZEP_STORE_TYPE=postgres
+      - ZEP_STORE_POSTGRES_DSN=postgres://zep_user:${ZEP_DB_PASSWORD:-zep_password}@zep_db:5432/zep_db?sslmode=disable
+      - ZEP_AUTH_SECRET=${ZEP_AUTH_SECRET:-your-secret-key}
+      - ZEP_LOG_LEVEL=${ZEP_LOG_LEVEL:-info}
+      - ZEP_DEVELOPMENT=${ZEP_DEVELOPMENT:-false}
+    volumes:
+      - ./deploy/configs/zep:/etc/zep
+    networks:
+      - rag_network
+    depends_on:
+      - zep_db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Zep Database
+  zep_db:
+    image: postgres:15-alpine
+    container_name: rag_zep_db
+    environment:
+      - POSTGRES_USER=zep_user
+      - POSTGRES_PASSWORD=${ZEP_DB_PASSWORD:-zep_password}
+      - POSTGRES_DB=zep_db
+    volumes:
+      - zep_db_data:/var/lib/postgresql/data
+    networks:
+      - rag_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zep_user -d zep_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Observability Backend (Langfuse)
+  langfuse:
+    image: langfuse/langfuse:2
+    container_name: rag_langfuse
+    ports:
+      - "${LANGFUSE_PORT:-3001}:3000"
+    environment:
+      - DATABASE_URL=postgresql://langfuse_user:${LANGFUSE_DB_PASSWORD:-langfuse_password}@langfuse_db:5432/langfuse_db
+      - NEXTAUTH_SECRET=${LANGFUSE_NEXTAUTH_SECRET:-your-nextauth-secret}
+      - SALT=${LANGFUSE_SALT:-your-salt}
+      - ENCRYPTION_KEY=${LANGFUSE_ENCRYPTION_KEY:-your-encryption-key}
+      - NEXTAUTH_URL=${LANGFUSE_NEXTAUTH_URL:-http://localhost:3000}
+      - TELEMETRY_ENABLED=${LANGFUSE_TELEMETRY_ENABLED:-true}
+      - LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES=${LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES:-false}
+    volumes:
+      - ./deploy/configs/langfuse:/etc/langfuse
+    networks:
+      - rag_network
+    depends_on:
+      - langfuse_db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/public/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Langfuse Database
+  langfuse_db:
+    image: postgres:15-alpine
+    container_name: rag_langfuse_db
+    environment:
+      - POSTGRES_USER=langfuse_user
+      - POSTGRES_PASSWORD=${LANGFUSE_DB_PASSWORD:-langfuse_password}
+      - POSTGRES_DB=langfuse_db
+    volumes:
+      - langfuse_db_data:/var/lib/postgresql/data
+    networks:
+      - rag_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse_user -d langfuse_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Main Application Database
+  rag_db:
+    image: postgres:15-alpine
+    container_name: rag_main_db
+    environment:
+      - POSTGRES_USER=rag_user
+      - POSTGRES_PASSWORD=${RAG_DB_PASSWORD:-rag_password}
+      - POSTGRES_DB=rag_db
+    volumes:
+      - rag_db_data:/var/lib/postgresql/data
+    networks:
+      - rag_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_user -d rag_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache (Optional)
+  redis:
+    image: redis:7-alpine
+    container_name: rag_redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    volumes:
+      - redis_data:/data
+      - ./deploy/configs/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - rag_network
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - cache
+
+volumes:
+  weaviate_data:
+    driver: local
+  vllm_models:
+    driver: local
+  zep_db_data:
+    driver: local
+  langfuse_db_data:
+    driver: local
+  rag_db_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  rag_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16

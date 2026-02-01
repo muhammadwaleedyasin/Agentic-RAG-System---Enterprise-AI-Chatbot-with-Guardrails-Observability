@@ -1,0 +1,89 @@
+# Zep Memory Configuration for Enterprise RAG Chatbot
+
+# Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 8000
+  web_enabled: true
+  cors_allow_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8000"
+
+# Development Settings
+development: false
+
+# Logging Configuration
+log:
+  level: "info"
+  output: "console"
+
+# Authentication
+auth:
+  secret: "${ZEP_AUTH_SECRET}"
+  required: false
+
+# Memory Store Configuration
+store:
+  type: "postgres"
+  postgres:
+    dsn: "${ZEP_STORE_POSTGRES_DSN}"
+    max_connections: 20
+    auto_migrate: true
+
+# Memory Configuration
+memory:
+  max_messages: 100
+  max_tokens: 8000
+  message_window_size: 12
+  summarizer:
+    enabled: true
+    max_token_count: 2000
+    min_message_count: 10
+
+# Embeddings Configuration
+nlp:
+  embeddings:
+    enabled: true
+    dimensions: 1536
+    service: "openai"
+    openai:
+      api_key: "${OPENAI_API_KEY}"
+      model: "text-embedding-3-small"
+
+# Extractors Configuration
+extractors:
+  intent:
+    enabled: true
+  entities:
+    enabled: true
+  sentiment:
+    enabled: true
+
+# Search Configuration
+search:
+  enabled: true
+  rerank: true
+  limit: 10
+
+# Purge Configuration
+purge:
+  enabled: true
+  batch_size: 1000
+  
+# Data Retention (in days)
+data_retention:
+  sessions: 90
+  messages: 90
+  summaries: 365
+
+# Performance Configuration
+performance:
+  max_concurrent_requests: 100
+  request_timeout: 30
+  background_task_workers: 4
+
+# Backup Configuration
+backup:
+  enabled: false
+  schedule: "0 2 * * *"
+  retention_days: 7

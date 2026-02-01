@@ -1,0 +1,425 @@
+# Compliance Policies Configuration
+# Comprehensive compliance rules and policies for various regulatory frameworks
+
+compliance_policies:
+  version: "1.0.0"
+  last_updated: "2024-12-07"
+  
+  # GDPR (General Data Protection Regulation) Policies
+  gdpr:
+    framework_name: "General Data Protection Regulation"
+    region: "EU"
+    effective_date: "2018-05-25"
+    
+    policies:
+      # Article 6 - Lawfulness of processing
+      article_6_lawful_basis:
+        control_id: "GDPR-6.1"
+        title: "Lawful Basis for Processing"
+        description: "Personal data processing must have a lawful basis"
+        requirements:
+          - "Explicit consent obtained"
+          - "Contract performance necessity"
+          - "Legal obligation compliance"
+          - "Vital interests protection"
+          - "Public task performance"
+          - "Legitimate interests"
+        
+        policy_rules:
+          - rule_id: "gdpr_consent_required"
+            conditions:
+              data_classification: ["personal", "sensitive"]
+              consent_obtained: true
+              consent_type: ["explicit", "informed"]
+            enforcement: "mandatory"
+            
+          - rule_id: "gdpr_legitimate_interest"
+            conditions:
+              data_classification: ["personal"]
+              legitimate_interest_assessment: true
+              balancing_test_completed: true
+            enforcement: "conditional"
+      
+      # Article 7 - Conditions for consent
+      article_7_consent:
+        control_id: "GDPR-7.1"
+        title: "Consent Conditions"
+        description: "Consent must be freely given, specific, informed and unambiguous"
+        requirements:
+          - "Clear affirmative action"
+          - "Granular consent options"
+          - "Easy withdrawal mechanism"
+          - "Consent records maintained"
+        
+        policy_rules:
+          - rule_id: "gdpr_consent_granular"
+            conditions:
+              consent_granularity: "purpose_specific"
+              withdrawal_mechanism: "accessible"
+            enforcement: "mandatory"
+      
+      # Article 17 - Right to erasure
+      article_17_erasure:
+        control_id: "GDPR-17.1"
+        title: "Right to Erasure (Right to be Forgotten)"
+        description: "Data subjects have the right to erasure of personal data"
+        requirements:
+          - "Erasure request processing"
+          - "Third-party notification"
+          - "Technical measures for deletion"
+          - "Retention period compliance"
+        
+        policy_rules:
+          - rule_id: "gdpr_erasure_timeframe"
+            conditions:
+              erasure_request_received: true
+              response_timeframe_days: 30
+              legitimate_grounds_check: true
+            enforcement: "mandatory"
+      
+      # Article 25 - Data protection by design and by default
+      article_25_privacy_design:
+        control_id: "GDPR-25.1"
+        title: "Data Protection by Design and by Default"
+        description: "Privacy protections must be built into systems from the outset"
+        requirements:
+          - "Privacy impact assessments"
+          - "Data minimization"
+          - "Pseudonymization"
+          - "Access controls"
+        
+        policy_rules:
+          - rule_id: "gdpr_data_minimization"
+            conditions:
+              data_collection: "purpose_limited"
+              data_retention: "time_limited"
+              data_accuracy: "maintained"
+            enforcement: "mandatory"
+
+  # HIPAA (Health Insurance Portability and Accountability Act) Policies
+  hipaa:
+    framework_name: "Health Insurance Portability and Accountability Act"
+    region: "US"
+    effective_date: "1996-08-21"
+    
+    policies:
+      # Administrative Safeguards
+      administrative_safeguards:
+        control_id: "HIPAA-164.308"
+        title: "Administrative Safeguards"
+        description: "Administrative actions to protect PHI"
+        
+        policy_rules:
+          - rule_id: "hipaa_security_officer"
+            conditions:
+              security_officer_assigned: true
+              security_responsibilities_documented: true
+            enforcement: "mandatory"
+          
+          - rule_id: "hipaa_workforce_training"
+            conditions:
+              security_training_completed: true
+              training_frequency: "annual"
+              training_records_maintained: true
+            enforcement: "mandatory"
+          
+          - rule_id: "hipaa_access_management"
+            conditions:
+              user_access_procedures: "documented"
+              access_reviews: "regular"
+              termination_procedures: "defined"
+            enforcement: "mandatory"
+      
+      # Physical Safeguards
+      physical_safeguards:
+        control_id: "HIPAA-164.310"
+        title: "Physical Safeguards"
+        description: "Physical protection of PHI and systems"
+        
+        policy_rules:
+          - rule_id: "hipaa_facility_access"
+            conditions:
+              facility_access_controls: true
+              visitor_management: true
+              physical_security_measures: true
+            enforcement: "mandatory"
+          
+          - rule_id: "hipaa_workstation_security"
+            conditions:
+              workstation_access_controls: true
+              automatic_logoff: true
+              encryption_enabled: true
+            enforcement: "mandatory"
+      
+      # Technical Safeguards
+      technical_safeguards:
+        control_id: "HIPAA-164.312"
+        title: "Technical Safeguards"
+        description: "Technical protection of PHI"
+        
+        policy_rules:
+          - rule_id: "hipaa_access_control"
+            conditions:
+              unique_user_identification: true
+              role_based_access: true
+              session_timeouts: true
+            enforcement: "mandatory"
+          
+          - rule_id: "hipaa_audit_controls"
+            conditions:
+              audit_logging_enabled: true
+              audit_log_review: "regular"
+              audit_log_protection: true
+            enforcement: "mandatory"
+          
+          - rule_id: "hipaa_transmission_security"
+            conditions:
+              encryption_in_transit: true
+              network_controls: true
+              secure_protocols: ["TLS 1.2", "TLS 1.3"]
+            enforcement: "mandatory"
+
+  # SOX (Sarbanes-Oxley Act) Policies
+  sox:
+    framework_name: "Sarbanes-Oxley Act"
+    region: "US"
+    effective_date: "2002-07-30"
+    
+    policies:
+      # Section 302 - Corporate Responsibility
+      section_302_responsibility:
+        control_id: "SOX-302"
+        title: "Corporate Responsibility for Financial Reports"
+        description: "Executives must certify financial reports"
+        
+        policy_rules:
+          - rule_id: "sox_financial_controls"
+            conditions:
+              financial_data_access_controlled: true
+              segregation_of_duties: true
+              approval_workflows: true
+            enforcement: "mandatory"
+      
+      # Section 404 - Management Assessment
+      section_404_assessment:
+        control_id: "SOX-404"
+        title: "Management Assessment of Internal Controls"
+        description: "Assessment of internal control over financial reporting"
+        
+        policy_rules:
+          - rule_id: "sox_change_management"
+            conditions:
+              change_approval_required: true
+              change_documentation: true
+              change_testing: true
+            enforcement: "mandatory"
+          
+          - rule_id: "sox_audit_trail"
+            conditions:
+              financial_transaction_logging: true
+              log_integrity: true
+              log_retention_years: 7
+            enforcement: "mandatory"
+
+  # PCI DSS (Payment Card Industry Data Security Standard) Policies
+  pci_dss:
+    framework_name: "Payment Card Industry Data Security Standard"
+    region: "Global"
+    effective_date: "2004-12-01"
+    current_version: "4.0"
+    
+    policies:
+      # Requirement 1: Install and maintain network security controls
+      requirement_1_network_security:
+        control_id: "PCI-1"
+        title: "Network Security Controls"
+        description: "Install and maintain network security controls"
+        
+        policy_rules:
+          - rule_id: "pci_firewall_configuration"
+            conditions:
+              firewall_installed: true
+              firewall_configured: true
+              network_segmentation: true
+            enforcement: "mandatory"
+      
+      # Requirement 3: Protect stored cardholder data
+      requirement_3_data_protection:
+        control_id: "PCI-3"
+        title: "Protect Stored Cardholder Data"
+        description: "Protect stored cardholder data"
+        
+        policy_rules:
+          - rule_id: "pci_data_encryption"
+            conditions:
+              cardholder_data_encrypted: true
+              encryption_strength: "AES-256"
+              key_management: "secure"
+            enforcement: "mandatory"
+          
+          - rule_id: "pci_data_retention"
+            conditions:
+              data_retention_policy: "defined"
+              secure_deletion: true
+              retention_justification: "business_need"
+            enforcement: "mandatory"
+      
+      # Requirement 8: Identify users and authenticate access
+      requirement_8_authentication:
+        control_id: "PCI-8"
+        title: "Identify and Authenticate Access"
+        description: "Identify users and authenticate access to system components"
+        
+        policy_rules:
+          - rule_id: "pci_user_identification"
+            conditions:
+              unique_user_ids: true
+              strong_authentication: true
+              multi_factor_authentication: true
+            enforcement: "mandatory"
+
+  # ISO 27001 Policies
+  iso_27001:
+    framework_name: "ISO/IEC 27001 Information Security Management"
+    region: "International"
+    effective_date: "2013-10-01"
+    current_version: "2013"
+    
+    policies:
+      # A.9 Access Control
+      a9_access_control:
+        control_id: "ISO-A.9"
+        title: "Access Control"
+        description: "To limit access to information and information processing facilities"
+        
+        policy_rules:
+          - rule_id: "iso_access_control_policy"
+            conditions:
+              access_control_policy_established: true
+              access_rights_reviewed: "regular"
+              privileged_access_controlled: true
+            enforcement: "mandatory"
+      
+      # A.12 Operations Security
+      a12_operations_security:
+        control_id: "ISO-A.12"
+        title: "Operations Security"
+        description: "To ensure correct and secure operations of information processing facilities"
+        
+        policy_rules:
+          - rule_id: "iso_change_management"
+            conditions:
+              change_management_procedures: "documented"
+              change_approval_process: true
+              change_testing: "mandatory"
+            enforcement: "mandatory"
+          
+          - rule_id: "iso_logging_monitoring"
+            conditions:
+              event_logging: true
+              log_monitoring: "continuous"
+              log_protection: true
+            enforcement: "mandatory"
+
+# Policy Enforcement Rules
+enforcement:
+  # Violation severity mapping
+  severity_mapping:
+    critical:
+      frameworks: ["pci_dss", "hipaa"]
+      data_types: ["payment_card", "phi"]
+      actions: ["immediate_block", "alert_management"]
+    
+    high:
+      frameworks: ["gdpr", "sox"]
+      data_types: ["personal", "financial"]
+      actions: ["alert_security", "escalate"]
+    
+    medium:
+      frameworks: ["iso_27001"]
+      data_types: ["confidential"]
+      actions: ["log", "notify"]
+    
+    low:
+      frameworks: ["general"]
+      data_types: ["internal"]
+      actions: ["log"]
+  
+  # Response procedures
+  response_procedures:
+    immediate_block:
+      - "Block access to resource"
+      - "Quarantine affected data"
+      - "Notify security team"
+      - "Initiate incident response"
+    
+    alert_management:
+      - "Send immediate alert to management"
+      - "Document violation details"
+      - "Begin compliance review"
+    
+    escalate:
+      - "Escalate to compliance officer"
+      - "Review policy compliance"
+      - "Schedule remediation"
+
+# Assessment Configuration
+assessments:
+  # Frequency by framework
+  frequency:
+    gdpr: "monthly"
+    hipaa: "quarterly" 
+    sox: "monthly"
+    pci_dss: "quarterly"
+    iso_27001: "annually"
+  
+  # Assessment scope
+  scope:
+    systems: ["rag_application", "database", "api_gateway"]
+    data_types: ["personal", "health", "financial", "payment_card"]
+    processes: ["data_processing", "access_control", "incident_response"]
+  
+  # Reporting
+  reporting:
+    formats: ["pdf", "html", "json"]
+    recipients:
+      critical: ["ciso@company.com", "legal@company.com"]
+      high: ["security@company.com", "compliance@company.com"]
+      medium: ["security@company.com"]
+    
+    templates:
+      executive_summary: "reports/templates/executive_summary.html"
+      technical_details: "reports/templates/technical_details.html"
+      compliance_status: "reports/templates/compliance_status.html"
+
+# Remediation Guidelines
+remediation:
+  # Standard remediation timelines
+  timelines:
+    critical: "immediate"  # Within 1 hour
+    high: "24_hours"      # Within 24 hours
+    medium: "72_hours"    # Within 72 hours
+    low: "7_days"         # Within 7 days
+  
+  # Remediation procedures by violation type
+  procedures:
+    data_breach:
+      - "Contain the breach"
+      - "Assess the scope"
+      - "Notify authorities (72 hours for GDPR)"
+      - "Notify affected individuals"
+      - "Document incident"
+      - "Review and improve controls"
+    
+    access_violation:
+      - "Revoke unauthorized access"
+      - "Review user permissions"
+      - "Update access controls"
+      - "Retrain user if necessary"
+    
+    policy_violation:
+      - "Document violation"
+      - "Investigate root cause"
+      - "Update policies if needed"
+      - "Provide additional training"
+      - "Implement additional controls"

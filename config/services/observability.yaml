@@ -1,0 +1,100 @@
+# Observability Configuration for RAG System
+# This file configures tracing, monitoring, and alerting
+
+# Global settings
+environment: "development"
+service_name: "rag-system"
+service_version: "1.0.0"
+
+# Langfuse tracing configuration
+langfuse:
+  enabled: true
+  public_key: "${LANGFUSE_PUBLIC_KEY}"  # Set in environment
+  secret_key: "${LANGFUSE_SECRET_KEY}"  # Set in environment
+  host: "${LANGFUSE_HOST:https://cloud.langfuse.com}"
+  session_id: null  # Auto-generated if not provided
+  batch_size: 100
+  flush_interval: 2.0
+  debug: false
+
+# Phoenix observability configuration
+phoenix:
+  enabled: true
+  endpoint: "${PHOENIX_ENDPOINT}"  # Set for remote Phoenix instance
+  launch_app: true  # Launch local Phoenix app
+  port: 6006
+  auto_instrument: true
+  collect_embeddings: true
+  collect_llm_calls: true
+  export_format: "otlp"  # "otlp" or "phoenix"
+
+# Metrics collection configuration
+metrics:
+  enabled: true
+  max_series_points: 1000
+  collection_interval: 30.0  # seconds
+  export_interval: 300.0  # seconds
+  retention_days: 30
+  
+  # Feature flags
+  collect_performance: true
+  collect_cost: true
+  collect_quality: true
+  collect_system: true
+  collect_user_analytics: true
+  
+  # Performance thresholds
+  latency_warning_threshold: 2.0  # seconds
+  latency_critical_threshold: 5.0  # seconds
+  error_rate_warning_threshold: 5.0  # percent
+  error_rate_critical_threshold: 10.0  # percent
+  
+  # Cost thresholds
+  daily_cost_warning_threshold: 50.0  # USD
+  daily_cost_critical_threshold: 100.0  # USD
+  cost_per_query_warning_threshold: 0.10  # USD
+  cost_per_query_critical_threshold: 0.25  # USD
+
+# Dashboard configuration
+dashboards:
+  enabled: true
+  default_refresh_interval: "30s"
+  default_time_range: "1h"
+  
+  # Dashboard features
+  enable_rag_overview: true
+  enable_performance_monitoring: true
+  enable_cost_tracking: true
+  enable_quality_metrics: true
+  enable_system_health: true
+  enable_user_analytics: true
+  
+  # Export settings
+  export_formats: ["json", "grafana"]
+  export_path: "./dashboards"
+
+# Alert configuration
+alerts:
+  enabled: true
+  
+  # Alert channels (configure at least one)
+  webhook_url: "${ALERT_WEBHOOK_URL}"  # Slack/Teams webhook
+  email_recipients: []  # ["admin@company.com"]
+  slack_webhook: "${SLACK_WEBHOOK_URL}"
+  
+  # Alert rules
+  alert_on_high_latency: true
+  alert_on_high_error_rate: true
+  alert_on_high_cost: true
+  alert_on_low_quality: true
+  alert_on_system_issues: true
+  
+  # Custom thresholds (override metrics config)
+  custom_thresholds: {}
+
+# Example environment variables to set:
+# export LANGFUSE_PUBLIC_KEY="pk_your_public_key"
+# export LANGFUSE_SECRET_KEY="sk_your_secret_key"
+# export LANGFUSE_HOST="https://cloud.langfuse.com"
+# export PHOENIX_ENDPOINT="http://localhost:6006"
+# export ALERT_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
