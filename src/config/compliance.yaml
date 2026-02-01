@@ -1,0 +1,137 @@
+# Enterprise Compliance Configuration
+# Default configuration for guardrails, security, and compliance
+
+# Global Compliance Settings
+compliance_level: "strict"  # strict, moderate, permissive, audit_only
+fail_fast: true
+enable_monitoring: true
+alert_on_violations: true
+
+# PII Detection Configuration
+pii_detection:
+  enabled: true
+  detection_threshold: 0.8
+  redaction_char: "*"
+  preserve_format: true
+  action_on_detection: "redact"  # block, redact, warn, log_only
+  entities_to_detect:
+    - "PERSON"
+    - "EMAIL_ADDRESS"
+    - "PHONE_NUMBER"
+    - "SSN"
+    - "CREDIT_CARD"
+    - "IP_ADDRESS"
+    - "US_PASSPORT"
+    - "US_DRIVER_LICENSE"
+  custom_patterns: {}
+
+# Citation Enforcement Configuration
+citation:
+  enforce_citations: true
+  min_citations_required: 1
+  max_citations_allowed: 5
+  citation_format: "[{source_id}]"
+  require_page_numbers: false
+  allow_partial_citations: true
+  confidence_threshold: 0.7
+
+# Topic Filtering Configuration
+topic_filter:
+  enabled: true
+  topic_detection_threshold: 0.75
+  action_on_blocked_topic: "block"  # block, redact, warn, log_only
+  blocked_topics:
+    - "personal_finances"
+    - "medical_advice"
+    - "legal_advice"
+    - "political_opinions"
+    - "confidential_strategy"
+  allowed_topics: []
+
+# Confidence and Abstain Configuration
+confidence:
+  min_confidence_threshold: 0.6
+  abstain_threshold: 0.4
+  enable_abstain: true
+  abstain_message: "I don't have sufficient confidence to answer this question accurately."
+  confidence_factors:
+    retrieval_score: 0.3
+    llm_confidence: 0.4
+    citation_quality: 0.2
+    topic_relevance: 0.1
+
+# Audit and Logging Configuration
+audit:
+  enabled: true
+  log_level: "INFO"
+  include_pii_detections: true
+  include_blocked_content: true
+  include_user_queries: false  # Privacy consideration
+  retention_days: 90
+  export_format: "json"
+  audit_fields:
+    - "timestamp"
+    - "user_id"
+    - "query_hash"
+    - "response_type"
+    - "compliance_status"
+    - "violations"
+    - "confidence_score"
+
+# Security Configuration
+security:
+  encryption:
+    enabled: true
+    default_key: "default"
+    key_rotation_days: 90
+  
+  access_control:
+    session_timeout_hours: 8
+    max_failed_attempts: 5
+    lockout_duration_minutes: 30
+  
+  scanning:
+    enabled: true
+    scan_frequency_hours: 24
+    threat_detection: true
+    vulnerability_assessment: true
+
+# Privacy Management
+privacy:
+  data_retention:
+    default_policy: "medium_term"  # short_term, medium_term, long_term, permanent
+    auto_cleanup: true
+    retention_periods:
+      short_term: 30  # days
+      medium_term: 365  # days
+      long_term: 2555  # 7 years in days
+  
+  gdpr_compliance:
+    enabled: true
+    auto_anonymize_after_days: 1095  # 3 years
+    data_subject_rights: true
+    consent_management: true
+
+# Integration Settings
+integrations:
+  langfuse:
+    enabled: false
+    project_id: ""
+    secret_key: ""
+  
+  arize_phoenix:
+    enabled: false
+    endpoint: ""
+    api_key: ""
+  
+  external_pii_service:
+    enabled: false
+    endpoint: ""
+    api_key: ""
+
+# Development and Testing
+development:
+  mock_violations: false
+  test_mode: false
+  bypass_encryption: false
+  verbose_logging: false
